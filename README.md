@@ -59,7 +59,7 @@ The final dataset is exported into a .csv file. Each row represents a single uni
 
 ### `total_financial_commitment`
 - The overall financial investment committed to the tournament’s prize money.
-- Type: Qualitative Discrete ❓
+- Type: Qualitative Discrete
 
 ### `currency`
 - The currency used for the financial commitment.
@@ -82,31 +82,31 @@ The final dataset is exported into a .csv file. Each row represents a single uni
 
 ### `p1_rank_move`, `p2_rank_move`
 - The change in rankings for Player 1 and Player 2 from three months prior to the match to the match date.
-- Type: Quantitative Discrete ❓
+- Type: Quantitative Discrete
 
 ### `p1_wins`, `p2_wins`
 - The total career matches won count for Player 1 and Player 2, respectively, as of October 2023.
-- Type: Quantitative Discrete ❓
+- Type: Quantitative Discrete
 
 ### `p1_wl_ratio`, `p2_wl_ratio`, `wl_dif`
 - The win-loss ratio for Player 1’s and Player 2’s career as of October 2023. Also, the absolute difference between the two.
-- Type: Quantitative Continuous ❓
+- Type: Quantitative Continuous
 
 ### `p1_titles`, `p2_titles`, `titles_dif`
 - The total titles won by Player 1 and Player 2 as of October 2023. Also, the absolute difference between the two.
-- Type: Quantitative Discrete ❓
+- Type: Quantitative Discrete
 
 ### `p1_age`, `p2_age`, `age_dif`
 - The age of Player 1 and Player 2 at the time of the match. Also, the absolute difference between the two.
-- Type: Quantitative Discrete ❓
+- Type: Quantitative Discrete
 
 ### `p1_height`, `p2_height`, `height_dif`
 - The height of Player 1 and Player 2. Also, the absolute difference between the two.
-- Type: Quantitative Discrete ❓
+- Type: Quantitative Discrete
 
 ### `p1_weight`, `p2_weight`, `weight_dif`
 - The weight of Player 1 and Player 2. Also, the absolute difference between the two.
-- Type: Quantitative Discrete ❓
+- Type: Quantitative Discrete
 
 ### `p1_hand`, `p2_hand`
 - The playing hand for Player 1 and Player 2.
@@ -125,7 +125,7 @@ The final dataset is exported into a .csv file. Each row represents a single uni
 
 ### `number_of_sets`
 - The number of sets played in the match.
-- Type: Qualitative Ordinal ❓
+- Type: Qualitative Ordinal
 - Classes: 0, 1, 2, 3, 4, or 5.
 
 
