@@ -20,7 +20,7 @@ Task three is focused on scraping player data. The script detects the number of 
 
 ### 4. Webscraping Rankings
 
-The fourth task concentrates on extracting rankings data. The script determines the date range and parses HTML to extract ranking data. It retrieves rankings for each player on specific dates, creating a dictionary of rankings by date.
+The fourth task concentrates on extracting rankings data. The script determines the date range and parses HTML to extract ranking data. It retrieves rankings for each player on specific dates, creating a dictionary of rankings by date. For backup purposes, the rank data is saved as a .JSON file.
 
 ### 5. Putting Everything Together
 
