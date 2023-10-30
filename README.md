@@ -26,7 +26,7 @@ The fourth task concentrates on extracting rankings data. The script determines 
 
 The final task combines all the collected data into a single dataset. It matches match data with tournament and player data, calculates various variables, and appends them to the final dataset. The resulting dataset contains a wealth of information, including player rankings, match outcomes, player statistics, and more.
 
-# The Final Dataset
+## The Final Dataset
 
 The final dataset is exported into a .csv file. Each row represents a single unique match. The fields/columns are described as follows:
 
