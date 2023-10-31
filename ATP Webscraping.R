@@ -32,7 +32,7 @@ library(jsonlite) # Write/read JSON files
 # Set file source as working directory 
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
-#################### 1. Webscraping tour_data ######################
+#################### 1. Web scraping tour_data ######################
 
 # Create an empty data frame to store tournament data
 tour_data <- data.frame(
@@ -93,7 +93,7 @@ for (year in start_date:end_date) {
 # Print message to console
 print ("Task 1 of 5 completed...")
 
-#################### 2. Webscraping match_data ######################
+#################### 2. Web scraping match_data ######################
 
 # Create an empty data frame to store match data
 match_data <- data.frame(
@@ -185,7 +185,7 @@ for (url in tour_data$link) {
 
 print ("Task 2 of 5 completed...")
 
-#################### 3. Webscraping player_data ######################
+#################### 3. Web scraping player_data ######################
 
 # Detect the number of available cores and start parallel processing
 num_cores <- parallel::detectCores()
