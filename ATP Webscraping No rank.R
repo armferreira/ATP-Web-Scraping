@@ -40,7 +40,7 @@ tour_data <- data.frame(
   location = character(0),
   date = as.Date(character(0)),
   surface = character(0),
-  total_financial_commitment = character(0),
+  prize = character(0),
   currency = character(0),
   link = character(0)
 )
@@ -76,14 +76,14 @@ for (year in start_date:end_date) {
       currency <- ifelse(currency == "$", "USD", 
                          ifelse(currency == "A$", "AUD", 
                                 ifelse(currency == "£", "GBP", currency)))
-      total_financial_commitment <- as.integer(gsub(",", "", result[1, 3]))
+      prize <- as.integer(gsub(",", "", result[1, 3]))
       date <- row %>% html_node(xpath = './/span[@class="tourney-dates"]') %>% html_text() %>% trimws()
       # Convert 'date' to date type
       date <- gsub("\\.", "-", date) %>% as.Date()
       
       # Append "https://www.atptour.com" to the link
       link <- paste("https://www.atptour.com", link, sep = "")
-      tour_data <- rbind(tour_data, data.frame(tournament_id = tournament_id, name = name, location = location, date = date, surface = surface, in_out = in_out, total_financial_commitment = total_financial_commitment, currency = currency, link = link))
+      tour_data <- rbind(tour_data, data.frame(tournament_id = tournament_id, name = name, location = location, date = date, surface = surface, in_out = in_out, prize = prize, currency = currency, link = link))
       tournament_id <- tournament_id + 1  # Increment the identifier
     }
   }
@@ -279,7 +279,7 @@ for (i in 1:nrow(match_data)) {
   final_dataset[i, "tournament"] <- tour_data$name[tour_data$tournament_id == match$tournament_id]
   final_dataset[i, "location"] <- tour_data$location[tour_data$tournament_id == match$tournament_id]
   final_dataset[i, "date"] <- tour_data$date[tour_data$tournament_id == match$tournament_id]
-  final_dataset[i, "total_financial_commitment"] <- tour_data$total_financial_commitment[tour_data$tournament_id == match$tournament_id]
+  final_dataset[i, "prize"] <- tour_data$prize[tour_data$tournament_id == match$tournament_id]
   final_dataset[i, "currency"] <- tour_data$currency[tour_data$tournament_id == match$tournament_id]
   final_dataset[i, "surface"] <- tour_data$surface[tour_data$tournament_id == match$tournament_id]
   final_dataset[i, "in_out"] <- tour_data$in_out[tour_data$tournament_id == match$tournament_id]
