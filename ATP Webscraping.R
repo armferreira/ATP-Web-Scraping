@@ -204,16 +204,7 @@ scrape_player_data <- function(player_id) {
   
   tryCatch({
     page <- read_html(url)
-    # Extract 'wins', 'losses' and calculate ratio
-    win_loss <- page %>% html_nodes(xpath = "//td[div[contains(text(), 'W-L')]]/div[@class='stat-value']") %>% html_text() %>% trimws()
-    win_loss <- win_loss[2]
-    wl_parts <- strsplit(win_loss, "-")
-    wins <- as.numeric(wl_parts[[1]][1])
-    losses <- as.numeric(wl_parts[[1]][2])
-    wl_ratio <- ifelse(losses != 0, wins / losses, 0) %>% round(5)
-    
-    titles <- page %>% html_nodes(xpath = "//td[div[contains(text(), 'Titles')]]/div[@class='stat-value']") %>% html_text() %>% trimws()
-    titles <- as.integer(titles[2])
+   
     name <- page %>% html_nodes(".player-profile-hero-name .first-name, .player-profile-hero-name .last-name") %>% html_text() %>% paste(collapse = " ")
     country <- page %>% html_node(".player-flag-code") %>% html_text()
     country <- ifelse(is.na(country), "RUS", country)
@@ -236,11 +227,11 @@ scrape_player_data <- function(player_id) {
     Sys.sleep(rate_limit)
     
     # Return the player data as a data.table
-    return(data.table(player_id = player_id, name = name, birthday = birthday, country = country, height = height, weight = weight, hand = hand, backhand = backhand, wl_ratio = wl_ratio, wins = wins, losses = losses, titles = titles))
+    return(data.table(player_id = player_id, name = name, birthday = birthday, country = country, height = height, weight = weight, hand = hand, backhand = backhand))
     
   }, error = function(err) {
     cat(paste("Error for player ID:", player_id, " - ", conditionMessage(err), "\n"))
-    return(data.table(player_id = player_id, name = NA, birthday = NA, country = NA, height = NA, weight = NA, hand = NA, backhand = NA, wl_ratio = NA, wins = NA, losses = NA, titles = NA))
+    return(data.table(player_id = player_id, name = NA, birthday = NA, country = NA, height = NA, weight = NA, hand = NA, backhand = NA))
   })
 }
 
@@ -390,17 +381,7 @@ for (i in 1:nrow(match_data)) {
   rank_move_player2 <- rank_data[[three_before_date]][[match$player2_id]] - rank_data[[closest_date]][[match$player2_id]]
   
   # Calculate rank difference between both player_data (with ifelse to catch NAs)
-  rank_dif <- ifelse(is.na(rank_player1) || is.null(rank_player2), NA, abs(rank_player1 - rank_player2))
-  
-  # Calculate win/loss ratio difference between both player_data (with ifelse to catch NAs)
-  p1_wl <- player_data$wl_ratio[player_data$player_id == match$player1_id]
-  p2_wl <- player_data$wl_ratio[player_data$player_id == match$player2_id]
-  wl_dif <- ifelse(is.na(p1_wl) || is.null(p2_wl), NA, abs(p1_wl - p2_wl))
-  
-  # Calculate titles difference between both player_data (with ifelse to catch NAs)
-  p1_titles <- player_data$titles[player_data$player_id == match$player1_id]
-  p2_titles <- player_data$titles[player_data$player_id == match$player2_id]
-  titles_dif <- ifelse(is.na(p1_titles) || is.null(p2_titles), NA, abs(p1_titles - p2_titles))
+  rank_dif <- ifelse(is.na(rank_player1) || is.null(rank_player2), NA, rank_player1 - rank_player2)
   
   # Calculate age for both player_data at the time of the tournament
   dob_player1 <- as.Date(player_data$birthday[player_data$player_id == match$player1_id])
@@ -409,17 +390,17 @@ for (i in 1:nrow(match_data)) {
   player2_age <- as.numeric(round(difftime(date_tournament, dob_player2, units = "days") / 365.25))
   
   # Calculate age difference between player_data (with ifelse to catch NAs)
-  age_dif <- ifelse(is.na(player1_age) || is.null(player2_age), NA, abs(player1_age - player2_age))
+  age_dif <- ifelse(is.na(player1_age) || is.null(player2_age), NA, player1_age - player2_age)
   
   # Calculate height difference between player_data (with ifelse to catch NAs)
   player1_height <- player_data$height[player_data$player_id == match$player1_id]
   player2_height <- player_data$height[player_data$player_id == match$player2_id]
-  height_dif <- ifelse(is.na(player1_height) || is.null(player2_height), NA, abs(player1_height - player2_height))
+  height_dif <- ifelse(is.na(player1_height) || is.null(player2_height), NA, player1_height - player2_height)
   
   # Calculate weight difference between player_data (with ifelse to catch NAs)
   player1_weight <- player_data$weight[player_data$player_id == match$player1_id]
   player2_weight <- player_data$weight[player_data$player_id == match$player2_id]
-  weight_dif <- ifelse(is.na(player1_weight) || is.null(player2_weight), NA, abs(player1_weight - player2_weight))
+  weight_dif <- ifelse(is.na(player1_weight) || is.null(player2_weight), NA, player1_weight - player2_weight)
   
   # Assign newly calculated fields and fields from other dataframes
   final_dataset[i, "tournament"] <- tour_data$name[tour_data$tournament_id == match$tournament_id]
@@ -434,14 +415,6 @@ for (i in 1:nrow(match_data)) {
   final_dataset[i, "p2_rank"] <- ifelse(is.null(rank_player2), NA, rank_player2)
   final_dataset[i, "p2_rank_move"] <- ifelse(is.null(rank_move_player2), NA, rank_move_player2)
   final_dataset[i, "rank_dif"] <- rank_dif
-  final_dataset[i, "p1_wins"] <- player_data$wins[player_data$player_id == match$player1_id]
-  final_dataset[i, "p1_wl_ratio"] <- player_data$wl_ratio[player_data$player_id == match$player1_id]
-  final_dataset[i, "p2_wins"] <- player_data$wins[player_data$player_id == match$player2_id]
-  final_dataset[i, "p2_wl_ratio"] <- player_data$wl_ratio[player_data$player_id == match$player2_id]
-  final_dataset[i, "wl_dif"] <- wl_dif
-  final_dataset[i, "p1_titles"] <- player_data$titles[player_data$player_id == match$player1_id]
-  final_dataset[i, "p2_titles"] <- player_data$titles[player_data$player_id == match$player2_id]
-  final_dataset[i, "titles_dif"] <- titles_dif
   final_dataset[i, "p1_age"] <- ifelse(is.null(player1_age), NA, player1_age)
   final_dataset[i, "p2_age"] <- ifelse(is.null(player2_age), NA, player2_age)
   final_dataset[i, "age_dif"] <- age_dif
