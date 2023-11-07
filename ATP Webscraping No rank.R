@@ -102,7 +102,7 @@ match_data <- data.frame(
   player1_id = character(0),
   player2_id = character(0),
   score = character(0),
-  number_of_sets = integer(0)
+  no_sets = integer(0)
 )
 
 # Initialize a unique identifier
@@ -171,11 +171,11 @@ for (url in tour_data$link) {
       score <- str_extract_all(score_raw, "\\S+") %>% unlist() %>% paste(collapse = " ")
       
       # Count the number of numbers in the score
-      number_of_sets <- length(unlist(str_extract_all(score, "\\d+")))
+      no_sets <- length(unlist(str_extract_all(score, "\\d+")))
       
       # Append the data to the match_data data frame if both player1 and player2 are not NA
       if (!is.na(player1_id) && !is.na(player2_id)) {
-        match_data <- rbind(match_data, data.frame(match_id = match_id, tournament_id = tournament_id, round = current_round, player1_id = player1_id, player2_id = player2_id, score = score, number_of_sets = number_of_sets))
+        match_data <- rbind(match_data, data.frame(match_id = match_id, tournament_id = tournament_id, round = current_round, player1_id = player1_id, player2_id = player2_id, score = score, no_sets = no_sets))
         match_id <- match_id + 1  # Increment the identifier
       }
     }
