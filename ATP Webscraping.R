@@ -2,8 +2,8 @@
 
 # Before you start!
 
-# Define year interval here (maximum range between 1974-2023):
-start_date <- 2023
+# Define year interval here (maximum range between 1915-2023):
+start_date <- 1915
 end_date <- 2023
 
 # Define wanted locations here:
@@ -23,9 +23,9 @@ for (package in required_packages) {
 
 # Loading required packages
 library(rvest) # HTML extraction
-library(furrr) # For parallel processing
-library(future) # For parallel processing
-library(data.table) # Similar to data.frame
+library(furrr) # Parallel processing
+library(future) # Parallel processing
+library(data.table) # Table-like manipulation
 library(stringr) # String formatting
 library(jsonlite) # Write/read JSON files
 
@@ -219,11 +219,11 @@ scrape_player_data <- function(player_id) {
     plays_with <- page %>% html_node(".table-label:contains('Plays') + .table-value") %>% html_text() %>% trimws()
     plays_with <- strsplit(plays_with, ", ")
     hand <- sapply(plays_with, `[`, 1)
-    hand <- gsub("-", "", hand)
+    hand <- gsub("-Handed", "", hand)
     backhand <- sapply(plays_with, `[`, 2)
     backhand <- ifelse(backhand == "Unknown Backhand", NA, backhand)
-    backhand <- gsub("-", "", backhand)
-    
+    backhand <- gsub("-Handed Backhand", "", backhand)
+
     Sys.sleep(rate_limit)
     
     # Return the player data as a data.table
@@ -246,7 +246,7 @@ player_data <- do.call(rbind, player_data)
 
 print ("Task 3 of 5 completed...")
 
-#################### 4. Webscraping rankings ######################
+#################### 4. Web scraping rankings ######################
 
 # Detect the number of available cores and start parallel processing
 num_cores <- parallel::detectCores()
@@ -296,28 +296,28 @@ process_date_data <- function(date) {
   # Create url with date
   url <- paste("https://www.atptour.com/en/rankings/singles?rankRange=1-5000&rankDate=", date, sep = "")
   html <- read_html(url)
-  
+
   # Extract nodes with player data from the HTML
   player_rows <- html_nodes(html, xpath = "//table[@id='player-rank-detail-ajax']/tbody/tr")
-  
+
   # Create a dictionary for player data for the current date
   date_data <- list()
-  
+
   # Inner loop
   for (player_row in player_rows) {
     rank <- player_row %>% html_node(".rank-cell") %>% html_text()
     # Clean rank to keep just numerical values as cast as integer
     rank <- as.integer(gsub("[^0-9]", "", rank))
-    
+
     player_id <- player_row %>% html_node(".player-cell-wrapper a") %>% html_attr("href")
-    
+
     # Extract the part of the link you want
     player_id <- strsplit(player_id, "/")[[1]]
     # Combine the relevant parts
     player_id <- paste(player_id[4], player_id[5], sep = "/")
     # Remove dots from strings to handle special names like (John Smith Jr.)
     player_id <- gsub("\\.", "", player_id)
-    
+
     # Add the player data to the dictionary with 'player_id' as the key and 'rank' as the value
     date_data[[player_id]] <- rank
   }
@@ -351,37 +351,9 @@ final_dataset <- match_data
 # Iterate through each row in the 'match_data' data frame
 for (i in 1:nrow(match_data)) {
   match <- match_data[i, ]
-  
   # Find the tournament's date
   date_tournament <- tour_data$date[tour_data$tournament_id == match$tournament_id]
-  dates_list <- as.Date(dates_list)
-  
-  # Get the index for the closest date to all of the possible dates in 'dates_list'
-  difference <- abs(dates_list - date_tournament)
-  closest_index <- which.min(difference)
-  
-  # Get the date closest as possible to matchday
-  closest_date <- dates_list[closest_index]
-  closest_date <- format(closest_date, "%Y-%m-%d")
-  
-  # Get the date 1 month prior (which means 1 index further)
-  one_before_date <- dates_list[closest_index - 1]
-  one_before_date <- format(one_before_date, "%Y-%m-%d")
-  
-  # Get the date 3 months prior (which means 3 indexes further)
-  three_before_date <- dates_list[closest_index - 3]
-  three_before_date <- format(three_before_date, "%Y-%m-%d")
-  
-  # Find the rank of both player_data 1 month prior the match
-  rank_player1 <- rank_data[[one_before_date]][[match$player1_id]]
-  rank_player2 <- rank_data[[one_before_date]][[match$player2_id]]
-  
-  # Calculate the change in player_data' ranking for the 3 months prior
-  rank_move_player1 <- rank_data[[three_before_date]][[match$player1_id]] - rank_data[[closest_date]][[match$player1_id]]
-  rank_move_player2 <- rank_data[[three_before_date]][[match$player2_id]] - rank_data[[closest_date]][[match$player2_id]]
-  
-  # Calculate rank difference between both player_data (with ifelse to catch NAs)
-  rank_dif <- ifelse(is.na(rank_player1) || is.null(rank_player2), NA, rank_player1 - rank_player2)
+  #target_date <- as.Date("26/11/1973")
   
   # Calculate age for both player_data at the time of the tournament
   dob_player1 <- as.Date(player_data$birthday[player_data$player_id == match$player1_id])
@@ -410,11 +382,11 @@ for (i in 1:nrow(match_data)) {
   final_dataset[i, "currency"] <- tour_data$currency[tour_data$tournament_id == match$tournament_id]
   final_dataset[i, "surface"] <- tour_data$surface[tour_data$tournament_id == match$tournament_id]
   final_dataset[i, "in_out"] <- tour_data$in_out[tour_data$tournament_id == match$tournament_id]
-  final_dataset[i, "p1_rank"] <- ifelse(is.null(rank_player1), NA, rank_player1)
-  final_dataset[i, "p1_rank_move"] <- ifelse(is.null(rank_move_player1), NA, rank_move_player1)
-  final_dataset[i, "p2_rank"] <- ifelse(is.null(rank_player2), NA, rank_player2)
-  final_dataset[i, "p2_rank_move"] <- ifelse(is.null(rank_move_player2), NA, rank_move_player2)
-  final_dataset[i, "rank_dif"] <- rank_dif
+  final_dataset[i, "p1_rank"] <- NA
+  final_dataset[i, "p1_rank_move"] <- NA
+  final_dataset[i, "p2_rank"] <- NA
+  final_dataset[i, "p2_rank_move"] <- NA
+  final_dataset[i, "rank_dif"] <- NA
   final_dataset[i, "p1_age"] <- ifelse(is.null(player1_age), NA, player1_age)
   final_dataset[i, "p2_age"] <- ifelse(is.null(player2_age), NA, player2_age)
   final_dataset[i, "age_dif"] <- age_dif
@@ -430,6 +402,46 @@ for (i in 1:nrow(match_data)) {
   final_dataset[i, "p2_backhand"] <- ifelse(is.null(player_data$backhand[player_data$player_id == match$player2_id]), NA, player_data$backhand[player_data$player_id == match$player2_id])
   final_dataset[i, "p1_nat"] <- ifelse(is.null(player_data$country[player_data$player_id == match$player1_id]), NA, player_data$country[player_data$player_id == match$player1_id])
   final_dataset[i, "p2_nat"] <- ifelse(is.null(player_data$country[player_data$player_id == match$player2_id]), NA, player_data$country[player_data$player_id == match$player2_id])
+  
+  # Get the index for the closest date to all of the possible dates in 'dates_list'
+  dates_list <- as.Date(dates_list)
+  difference <- abs(dates_list - date_tournament)
+  closest_index <- which.min(difference)
+  
+  if (closest_index >= 4) {
+    # Get the index for the closest date to all of the possible dates in 'dates_list'
+    difference <- abs(dates_list - date_tournament)
+    closest_index <- which.min(difference)
+    
+    # Get the date closest as possible to matchday
+    closest_date <- dates_list[closest_index]
+    closest_date <- format(closest_date, "%Y-%m-%d")
+    # Get the date 1 month prior (which means 1 index less)
+    one_before_date <- dates_list[closest_index - 1]
+    one_before_date <- format(one_before_date, "%Y-%m-%d")
+    
+    # Get the date 3 months prior (which means 3 indexes less)
+    three_before_date <- dates_list[closest_index - 3]
+    three_before_date <- format(three_before_date, "%Y-%m-%d")
+    
+    # Calculate the change in player_data' ranking for the 3 months prior
+    rank_move_player1 <- rank_data[[three_before_date]][[match$player1_id]] - rank_data[[closest_date]][[match$player1_id]]
+    rank_move_player2 <- rank_data[[three_before_date]][[match$player2_id]] - rank_data[[closest_date]][[match$player2_id]]
+    
+    # Find the rank of both player_data 1 month prior the match
+    dates_list[1]
+    rank_player1 <- rank_data[[one_before_date]][[match$player1_id]]
+    rank_player2 <- rank_data[[one_before_date]][[match$player2_id]]
+    
+    # Calculate rank difference between both player_data (with ifelse to catch NAs)
+    rank_dif <- ifelse(is.na(rank_player1) || is.null(rank_player2), NA, rank_player1 - rank_player2)
+    
+    final_dataset[i, "p1_rank"] <- ifelse(is.null(rank_player1), NA, rank_player1)
+    final_dataset[i, "p1_rank_move"] <- ifelse(is.null(rank_move_player1), NA, rank_move_player1)
+    final_dataset[i, "p2_rank"] <- ifelse(is.null(rank_player2), NA, rank_player2)
+    final_dataset[i, "p2_rank_move"] <- ifelse(is.null(rank_move_player2), NA, rank_move_player2)
+    final_dataset[i, "rank_dif"] <- rank_dif
+  }
 }
 
 # Save dataset as csv file
