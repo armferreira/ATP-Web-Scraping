@@ -56,9 +56,6 @@ The final dataset is exported into a .csv file. Each row represents a single uni
 ### `surface`
 - The type of playing surface in the match tennis court.
 
-### `in_out`
-- Indicates whether the match was played indoors or outdoors.
-
 ### `p1_rank`, `p2_rank`, `rank_dif`
 - The rankings of Player 1 and Player 2, respectively, 1 month before the match. Also, the absolute difference between those rankings.
 
