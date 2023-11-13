@@ -70,7 +70,6 @@ for (year in start_date:end_date) {
       name <- trimws(html_text(html_node(row, xpath = ".//td[@class='title-content']//a[@class='tourney-title']")))
       link <- html_attr(html_node(row, xpath = ".//td[@class='tourney-details']//a[@class='button-border']"), "href")
       surface <- trimws(html_text(html_node(row, xpath = ".//td[@class='tourney-details']/div[@class='info-area']/div[@class='item-details']/span[@class='item-value']")))
-      in_out <- page %>% html_node(xpath = '//td[@class="tourney-details"]//div[@class="info-area"]//div[@class="item-details"]/span[@class="item-value"]/preceding-sibling::text()') %>% html_text() %>% trimws()
       numeric_value <- trimws(html_text(html_node(row, xpath = ".//td[@class='tourney-details fin-commit']//span[@class='item-value']")))
       result <- str_match(numeric_value, "([A-Z$£€]+)?([0-9,]+)")
       currency <- result[1, 2]
@@ -84,7 +83,7 @@ for (year in start_date:end_date) {
 
       # Append "https://www.atptour.com" to the link
       link <- paste("https://www.atptour.com", link, sep = "")
-      tour_data <- rbind(tour_data, data.frame(tournament_id = tournament_id, name = name, location = location, date = date, surface = surface, in_out = in_out, prize = prize, currency = currency, link = link))
+      tour_data <- rbind(tour_data, data.frame(tournament_id = tournament_id, name = name, location = location, date = date, surface = surface, prize = prize, currency = currency, link = link))
       tournament_id <- tournament_id + 1  # Increment the identifier
     }
   }
@@ -381,7 +380,6 @@ for (i in 1:nrow(match_data)) {
   final_dataset[i, "prize"] <- tour_data$prize[tour_data$tournament_id == match$tournament_id]
   final_dataset[i, "currency"] <- tour_data$currency[tour_data$tournament_id == match$tournament_id]
   final_dataset[i, "surface"] <- tour_data$surface[tour_data$tournament_id == match$tournament_id]
-  final_dataset[i, "in_out"] <- tour_data$in_out[tour_data$tournament_id == match$tournament_id]
   final_dataset[i, "p1_rank"] <- NA
   final_dataset[i, "p1_rank_move"] <- NA
   final_dataset[i, "p2_rank"] <- NA
