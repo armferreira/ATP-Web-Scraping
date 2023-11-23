@@ -3,7 +3,7 @@
 # Before you start!
 
 # Define year interval here (maximum range between 1915-2023):
-start_date <- 1915
+start_date <- 1983
 end_date <- 2023
 
 # Define wanted locations here:
@@ -13,7 +13,7 @@ specified_locations <- c("Australia", "Adelaide", "Albury", "Alica Springs", "Al
 # on the same folder as this .R program.
 
 # Installing required packages
-required_packages <- c("rvest", "furrr", "future", "data.table", "stringr", "jsonlite")
+required_packages <- c("rvest", "furrr", "future", "data.table", "stringr", "jsonlite", "dplyr")
 
 for (package in required_packages) {
   if (!require(package, character.only = TRUE)) {
@@ -28,6 +28,7 @@ library(future) # Parallel processing
 library(data.table) # Table-like manipulation
 library(stringr) # String formatting
 library(jsonlite) # Write/read JSON files
+library(dplyr) # Data frame handling
 
 # Set file source as working directory 
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
@@ -68,6 +69,8 @@ for (year in start_date:end_date) {
     if (any(location_words %in% specified_locations) || location %in% specified_locations) {
       location <- location %>% gsub("/", "-", .) %>% gsub(", Australia", "", .)
       name <- trimws(html_text(html_node(row, xpath = ".//td[@class='title-content']//a[@class='tourney-title']")))
+      name <- gsub("-", "", name)
+      name <- gsub(" ", "", name)
       link <- html_attr(html_node(row, xpath = ".//td[@class='tourney-details']//a[@class='button-border']"), "href")
       surface <- trimws(html_text(html_node(row, xpath = ".//td[@class='tourney-details']/div[@class='info-area']/div[@class='item-details']/span[@class='item-value']")))
       numeric_value <- trimws(html_text(html_node(row, xpath = ".//td[@class='tourney-details fin-commit']//span[@class='item-value']")))
@@ -84,12 +87,11 @@ for (year in start_date:end_date) {
       # Append "https://www.atptour.com" to the link
       link <- paste("https://www.atptour.com", link, sep = "")
       tour_data <- rbind(tour_data, data.frame(tournament_id = tournament_id, name = name, location = location, date = date, surface = surface, prize = prize, currency = currency, link = link))
-      tournament_id <- tournament_id + 1  # Increment the identifier
+      tournament_id <- tournament_id + 1
     }
   }
 }
 
-# Print message to console
 print ("Task 1 of 5 completed...")
 
 #################### 2. Web scraping match_data ######################
@@ -98,7 +100,7 @@ print ("Task 1 of 5 completed...")
 match_data <- data.frame(
   match_id = integer(0),
   tournament_id = integer(0),
-  round_info = character(0),
+  round = character(0),
   player1_id = character(0),
   player2_id = character(0),
   score = character(0),
@@ -132,9 +134,12 @@ for (url in tour_data$link) {
     if (length(current_round) > 0) {
       # Handling NAs and standardizing round name
       if (current_round == "Final") { current_round = "Finals" }
-      if (current_round == "Semifinals") { current_round = "Semi-finals" }
-      if (current_round == "Olympic Bronze") { current_round = "Semi-finals" }
-      if (current_round == "Quarterfinals") { current_round = "Quarter-finals" }
+      if (current_round == "Semifinals") { current_round = "Semi-Finals" }
+      if (current_round == "Semi-finals") { current_round = "Semi-Finals" }
+      if (current_round == "Quarter-finals") { current_round = "Quarter-Finals" }
+      if (current_round == "Olympic Bronze") { current_round = "Semi-Finals" }
+      if (current_round == "Quarterfinals") { current_round = "Quarter-Finals" }
+      current_round <- gsub(" ", "", current_round)
     }
     
     # Loop through the match rows in the current round
@@ -212,7 +217,23 @@ scrape_player_data <- function(player_id) {
     birthday <- gsub("\\s+|\\(|\\)", "", birthday)
     birthday <- gsub("\\.", "-", birthday)
     height <- as.integer(gsub("\\D", "", page %>% html_node(".table-big-label:contains('Height') + .table-big-value .table-height-cm-wrapper") %>% html_text()))
+    if(height == 0){height <- NA}
     weight <- as.integer(gsub("\\D", "", page %>% html_node(".table-big-label:contains('Weight') + .table-big-value .table-weight-kg-wrapper") %>% html_text()))
+    if(weight == 0){weight <- NA}
+    
+    # Handling special cases
+    if (player_id == 'jean-noel-grinda/g331') {birthday <- '1976-04-20'}
+    if (player_id == 'jean-noel-grinda/g331') {birthday <- '1976-04-20'}
+    if (player_id == 'alex-bolt/bi81') {height <- 183}
+    if (player_id == 'grant-stafford/s406') {height <- 188}
+    if (player_id == 'nathan-healey/h431') {height <- 180}
+    if (player_id == 'simone-vagnozzi/v339') {height <- 173}
+    if (player_id == 'diego-alvarez/a366') {height <- 185}
+    if (player_id == 'theodoros-angelinos/a584') {height <- 190}
+    if (player_id == 'alex-bolt/bi81') {weight <- 84}
+    if (player_id == 'hans-simonsson/s053') {weight <- 80}
+    if (player_id == 'patrick-baur/b293') {weight <- 74}
+    if (player_id == 'gustavo-marcaccio/m812') {weight <- 70}
     
     # Extract 'hand' and 'backhand' values
     plays_with <- page %>% html_node(".table-label:contains('Plays') + .table-value") %>% html_text() %>% trimws()
@@ -222,7 +243,7 @@ scrape_player_data <- function(player_id) {
     backhand <- sapply(plays_with, `[`, 2)
     backhand <- ifelse(backhand == "Unknown Backhand", NA, backhand)
     backhand <- gsub("-Handed Backhand", "", backhand)
-
+    
     Sys.sleep(rate_limit)
     
     # Return the player data as a data.table
@@ -344,8 +365,8 @@ print ("Task 4 of 5 completed...")
 
 #################### 5. Putting everything together ######################
 
-# Initialize final_dataset starting from the 'match_data' data frame
-final_dataset <- match_data
+# Initialize final data frame starting from the 'match_data' data frame
+final <- match_data
 
 # Iterate through each row in the 'match_data' data frame
 for (i in 1:nrow(match_data)) {
@@ -374,32 +395,32 @@ for (i in 1:nrow(match_data)) {
   weight_dif <- ifelse(is.na(player1_weight) || is.null(player2_weight), NA, player1_weight - player2_weight)
   
   # Assign newly calculated fields and fields from other dataframes
-  final_dataset[i, "tournament"] <- tour_data$name[tour_data$tournament_id == match$tournament_id]
-  final_dataset[i, "location"] <- tour_data$location[tour_data$tournament_id == match$tournament_id]
-  final_dataset[i, "date"] <- tour_data$date[tour_data$tournament_id == match$tournament_id]
-  final_dataset[i, "prize"] <- tour_data$prize[tour_data$tournament_id == match$tournament_id]
-  final_dataset[i, "currency"] <- tour_data$currency[tour_data$tournament_id == match$tournament_id]
-  final_dataset[i, "surface"] <- tour_data$surface[tour_data$tournament_id == match$tournament_id]
-  final_dataset[i, "p1_rank"] <- NA
-  final_dataset[i, "p1_rank_move"] <- NA
-  final_dataset[i, "p2_rank"] <- NA
-  final_dataset[i, "p2_rank_move"] <- NA
-  final_dataset[i, "rank_dif"] <- NA
-  final_dataset[i, "p1_age"] <- ifelse(is.null(player1_age), NA, player1_age)
-  final_dataset[i, "p2_age"] <- ifelse(is.null(player2_age), NA, player2_age)
-  final_dataset[i, "age_dif"] <- age_dif
-  final_dataset[i, "p1_height"] <- ifelse(is.null(player1_height), NA, player1_height)
-  final_dataset[i, "p2_height"] <- ifelse(is.null(player2_height), NA, player2_height)
-  final_dataset[i, "height_dif"] <- height_dif
-  final_dataset[i, "p1_weight"] <- ifelse(is.null(player1_weight), NA, player1_weight)
-  final_dataset[i, "p2_weight"] <- ifelse(is.null(player2_weight), NA, player2_weight)
-  final_dataset[i, "weight_dif"] <- weight_dif
-  final_dataset[i, "p1_hand"] <- ifelse(is.null(player_data$hand[player_data$player_id == match$player1_id]), NA, player_data$hand[player_data$player_id == match$player1_id])
-  final_dataset[i, "p2_hand"] <- ifelse(is.null(player_data$hand[player_data$player_id == match$player2_id]), NA, player_data$hand[player_data$player_id == match$player2_id])
-  final_dataset[i, "p1_backhand"] <- ifelse(is.null(player_data$backhand[player_data$player_id == match$player1_id]), NA, player_data$backhand[player_data$player_id == match$player1_id])
-  final_dataset[i, "p2_backhand"] <- ifelse(is.null(player_data$backhand[player_data$player_id == match$player2_id]), NA, player_data$backhand[player_data$player_id == match$player2_id])
-  final_dataset[i, "p1_nat"] <- ifelse(is.null(player_data$country[player_data$player_id == match$player1_id]), NA, player_data$country[player_data$player_id == match$player1_id])
-  final_dataset[i, "p2_nat"] <- ifelse(is.null(player_data$country[player_data$player_id == match$player2_id]), NA, player_data$country[player_data$player_id == match$player2_id])
+  final[i, "tournament"] <- tour_data$name[tour_data$tournament_id == match$tournament_id]
+  final[i, "location"] <- tour_data$location[tour_data$tournament_id == match$tournament_id]
+  final[i, "date"] <- tour_data$date[tour_data$tournament_id == match$tournament_id]
+  final[i, "prize"] <- tour_data$prize[tour_data$tournament_id == match$tournament_id]
+  final[i, "currency"] <- tour_data$currency[tour_data$tournament_id == match$tournament_id]
+  final[i, "surface"] <- tour_data$surface[tour_data$tournament_id == match$tournament_id]
+  final[i, "p1_rank"] <- NA
+  final[i, "p1_rank_move"] <- NA
+  final[i, "p2_rank"] <- NA
+  final[i, "p2_rank_move"] <- NA
+  final[i, "rank_dif"] <- NA
+  final[i, "p1_age"] <- ifelse(is.null(player1_age), NA, player1_age)
+  final[i, "p2_age"] <- ifelse(is.null(player2_age), NA, player2_age)
+  final[i, "age_dif"] <- age_dif
+  final[i, "p1_height"] <- ifelse(is.null(player1_height), NA, player1_height)
+  final[i, "p2_height"] <- ifelse(is.null(player2_height), NA, player2_height)
+  final[i, "height_dif"] <- height_dif
+  final[i, "p1_weight"] <- ifelse(is.null(player1_weight), NA, player1_weight)
+  final[i, "p2_weight"] <- ifelse(is.null(player2_weight), NA, player2_weight)
+  final[i, "weight_dif"] <- weight_dif
+  final[i, "p1_hand"] <- ifelse(is.null(player_data$hand[player_data$player_id == match$player1_id]), NA, player_data$hand[player_data$player_id == match$player1_id])
+  final[i, "p2_hand"] <- ifelse(is.null(player_data$hand[player_data$player_id == match$player2_id]), NA, player_data$hand[player_data$player_id == match$player2_id])
+  final[i, "p1_backhand"] <- ifelse(is.null(player_data$backhand[player_data$player_id == match$player1_id]), NA, player_data$backhand[player_data$player_id == match$player1_id])
+  final[i, "p2_backhand"] <- ifelse(is.null(player_data$backhand[player_data$player_id == match$player2_id]), NA, player_data$backhand[player_data$player_id == match$player2_id])
+  final[i, "p1_nat"] <- ifelse(is.null(player_data$country[player_data$player_id == match$player1_id]), NA, player_data$country[player_data$player_id == match$player1_id])
+  final[i, "p2_nat"] <- ifelse(is.null(player_data$country[player_data$player_id == match$player2_id]), NA, player_data$country[player_data$player_id == match$player2_id])
   
   # Get the index for the closest date to all of the possible dates in 'dates_list'
   dates_list <- as.Date(dates_list)
@@ -434,17 +455,22 @@ for (i in 1:nrow(match_data)) {
     # Calculate rank difference between both player_data (with ifelse to catch NAs)
     rank_dif <- ifelse(is.na(rank_player1) || is.null(rank_player2), NA, rank_player1 - rank_player2)
     
-    final_dataset[i, "p1_rank"] <- ifelse(is.null(rank_player1), NA, rank_player1)
-    final_dataset[i, "p1_rank_move"] <- ifelse(is.null(rank_move_player1), NA, rank_move_player1)
-    final_dataset[i, "p2_rank"] <- ifelse(is.null(rank_player2), NA, rank_player2)
-    final_dataset[i, "p2_rank_move"] <- ifelse(is.null(rank_move_player2), NA, rank_move_player2)
-    final_dataset[i, "rank_dif"] <- rank_dif
+    final[i, "p1_rank"] <- ifelse(is.null(rank_player1), NA, rank_player1)
+    final[i, "p1_rank_move"] <- ifelse(is.null(rank_move_player1), NA, rank_move_player1)
+    final[i, "p2_rank"] <- ifelse(is.null(rank_player2), NA, rank_player2)
+    final[i, "p2_rank_move"] <- ifelse(is.null(rank_move_player2), NA, rank_move_player2)
+    final[i, "rank_dif"] <- rank_dif
   }
+  # final <- final %>%
+    # select(tournament, location, date, prize, currency, surface, player1_id, player2_id, p1_rank, 
+         # p2_rank, rank_dif, p1_rank_move, p2_rank_move, p1_age, p2_age, age_dif, p1_height, p2_height, 
+         # height_dif, p1_weight, p2_weight, weight_dif, p1_hand, p2_hand, p1_backhand, 
+         # p2_backhand, p1_nat, p2_nat, no_sets)
 }
 
 # Save dataset as csv file
-file_name <- paste("Final_dataset_", start_date, "_", end_date, ".csv", sep = '')
-write.csv2(final_dataset, file_name, row.names = FALSE)
+file_name <- paste("final_", start_date, "_", end_date, ".csv", sep = '')
+write.csv2(final, file_name, row.names = FALSE)
 
 # Write message to console
 print ("Task 5 of 5 completed! :)")
